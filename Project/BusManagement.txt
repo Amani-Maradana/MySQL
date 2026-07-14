@@ -1,0 +1,1269 @@
+mysql> DROP DATABASE IF EXISTS bus_management_system;
+Query OK, 0 rows affected, 1 warning (0.01 sec)
+
+mysql> CREATE DATABASE bus_management_system;
+Query OK, 1 row affected (0.02 sec)
+
+mysql> USE bus_management_system;
+Database changed
+mysql> CREATE TABLE bus_operators (
+    ->     operator_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     operator_name VARCHAR(100) NOT NULL,
+    ->     owner_name VARCHAR(100),
+    ->     phone VARCHAR(15) UNIQUE,
+    ->     email VARCHAR(100) UNIQUE,
+    ->     address VARCHAR(255)
+    -> );
+Query OK, 0 rows affected (0.09 sec)
+
+mysql> CREATE TABLE buses (
+    ->     bus_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     operator_id INT NOT NULL,
+    ->     bus_number VARCHAR(20) UNIQUE NOT NULL,
+    ->     bus_name VARCHAR(100),
+    ->     bus_type ENUM('AC Sleeper','Non-AC Sleeper','AC Seater','Non-AC Seater','Luxury','Semi Sleeper'),
+    ->     capacity INT CHECK (capacity>0),
+    ->     registration_number VARCHAR(30) UNIQUE,
+    ->     manufacture_year YEAR,
+    ->     status ENUM('Available','Maintenance','Inactive') DEFAULT 'Available',
+    ->     FOREIGN KEY(operator_id) REFERENCES bus_operators(operator_id)
+    -> );
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> CREATE TABLE drivers(
+    ->     driver_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     bus_id INT,
+    ->     driver_name VARCHAR(100),
+    ->     gender ENUM('Male','Female'),
+    ->     phone VARCHAR(15) UNIQUE,
+    ->     license_number VARCHAR(50) UNIQUE,
+    ->     experience INT,
+    ->     salary DECIMAL(10,2),
+    ->     FOREIGN KEY(bus_id) REFERENCES buses(bus_id)
+    -> );
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> CREATE TABLE conductors(
+    ->     conductor_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     bus_id INT,
+    ->     conductor_name VARCHAR(100),
+    ->     gender ENUM('Male','Female'),
+    ->     phone VARCHAR(15) UNIQUE,
+    ->     experience INT,
+    ->     salary DECIMAL(10,2),
+    ->     FOREIGN KEY(bus_id) REFERENCES buses(bus_id)
+    -> );
+Query OK, 0 rows affected (0.09 sec)
+
+mysql> CREATE TABLE routes(
+    ->     route_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     source_city VARCHAR(100),
+    ->     destination_city VARCHAR(100),
+    ->     distance DECIMAL(8,2),
+    ->     estimated_time TIME,
+    ->     route_status ENUM('Active','Inactive') DEFAULT 'Active'
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> CREATE TABLE bus_schedules(
+    ->     schedule_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     bus_id INT,
+    ->     route_id INT,
+    ->     departure_date DATE,
+    ->     departure_time TIME,
+    ->     arrival_time TIME,
+    ->     fare DECIMAL(10,2),
+    ->     status ENUM('Scheduled','Cancelled','Completed') DEFAULT 'Scheduled',
+    ->     FOREIGN KEY(bus_id) REFERENCES buses(bus_id),
+    ->     FOREIGN KEY(route_id) REFERENCES routes(route_id)
+    -> );
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> CREATE TABLE customers(
+    ->     customer_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     customer_name VARCHAR(100),
+    ->     gender ENUM('Male','Female'),
+    ->     age INT CHECK(age>0),
+    ->     phone VARCHAR(15) UNIQUE,
+    ->     email VARCHAR(100),
+    ->     city VARCHAR(100)
+    -> );
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> CREATE TABLE seats(
+    ->     seat_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     bus_id INT,
+    ->     seat_number VARCHAR(10),
+    ->     seat_type ENUM('Window','Middle','Aisle'),
+    ->     seat_status ENUM('Available','Booked') DEFAULT 'Available',
+    ->     FOREIGN KEY(bus_id) REFERENCES buses(bus_id)
+    -> );
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> CREATE TABLE bookings(
+    ->     booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     customer_id INT,
+    ->     schedule_id INT,
+    ->     booking_date DATE,
+    ->     booking_status ENUM('Confirmed','Cancelled','Pending') DEFAULT 'Pending',
+    ->     total_amount DECIMAL(10,2),
+    ->     FOREIGN KEY(customer_id) REFERENCES customers(customer_id),
+    ->     FOREIGN KEY(schedule_id) REFERENCES bus_schedules(schedule_id)
+    -> );
+Query OK, 0 rows affected (0.09 sec)
+
+mysql> CREATE TABLE booking_details(
+    ->     booking_detail_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     booking_id INT,
+    ->     seat_id INT,
+    ->     passenger_name VARCHAR(100),
+    ->     passenger_age INT,
+    ->     passenger_gender ENUM('Male','Female'),
+    ->     FOREIGN KEY(booking_id) REFERENCES bookings(booking_id),
+    ->     FOREIGN KEY(seat_id) REFERENCES seats(seat_id)
+    -> );
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> CREATE TABLE payments(
+    ->     payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     booking_id INT,
+    ->     payment_mode ENUM('UPI','Card','Net Banking','Cash'),
+    ->     payment_date DATE,
+    ->     amount DECIMAL(10,2),
+    ->     payment_status ENUM('Paid','Pending','Failed'),
+    ->     transaction_id VARCHAR(100),
+    ->     FOREIGN KEY(booking_id) REFERENCES bookings(booking_id)
+    -> );
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> CREATE TABLE cancellations(
+    ->     cancellation_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     booking_id INT,
+    ->     cancellation_date DATE,
+    ->     refund_amount DECIMAL(10,2),
+    ->     reason VARCHAR(255),
+    ->     FOREIGN KEY(booking_id) REFERENCES bookings(booking_id)
+    -> );
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> CREATE TABLE feedback(
+    ->     feedback_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     customer_id INT,
+    ->     bus_id INT,
+    ->     rating INT CHECK(rating BETWEEN 1 AND 5),
+    ->     comments VARCHAR(255),
+    ->     feedback_date DATE,
+    ->     FOREIGN KEY(customer_id) REFERENCES customers(customer_id),
+    ->     FOREIGN KEY(bus_id) REFERENCES buses(bus_id)
+    -> );
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> CREATE TABLE boarding_points(
+    ->     boarding_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     route_id INT,
+    ->     location VARCHAR(100),
+    ->     boarding_time TIME,
+    ->     FOREIGN KEY(route_id) REFERENCES routes(route_id)
+    -> );
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> CREATE TABLE dropping_points(
+    ->     dropping_id INT PRIMARY KEY AUTO_INCREMENT,
+    ->     route_id INT,
+    ->     location VARCHAR(100),
+    ->     dropping_time TIME,
+    ->     FOREIGN KEY(route_id) REFERENCES routes(route_id)
+    -> );
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> show tables;
++---------------------------------+
+| Tables_in_bus_management_system |
++---------------------------------+
+| boarding_points                 |
+| booking_details                 |
+| bookings                        |
+| bus_operators                   |
+| bus_schedules                   |
+| buses                           |
+| cancellations                   |
+| conductors                      |
+| customers                       |
+| drivers                         |
+| dropping_points                 |
+| feedback                        |
+| payments                        |
+| routes                          |
+| seats                           |
++---------------------------------+
+15 rows in set (0.02 sec)
+
+mysql> INSERT INTO routes (route_id,source,destination,distance) VALUES
+    -> (1,'Visakhapatnam','Hyderabad',620),
+    -> (2,'Hyderabad','Bangalore',570),
+    -> (3,'Vijayawada','Chennai',450),
+    -> (4,'Visakhapatnam','Vijayawada',350),
+    -> (5,'Hyderabad','Tirupati',560),
+    -> (6,'Guntur','Hyderabad',280),
+    -> (7,'Nellore','Bangalore',380),
+    -> (8,'Kurnool','Hyderabad',220),
+    -> (9,'Rajahmundry','Vizag',190),
+    -> (10,'Tirupati','Chennai',140),
+    -> (11,'Warangal','Hyderabad',150),
+    -> (12,'Kadapa','Vijayawada',390),
+    -> (13,'Ongole','Vizag',320),
+    -> (14,'Anantapur','Bangalore',210),
+    -> (15,'Eluru','Hyderabad',340);
+ERROR 1054 (42S22): Unknown column 'source' in 'field list'
+mysql> desc routes;
++------------------+---------------------------+------+-----+---------+----------------+
+| Field            | Type                      | Null | Key | Default | Extra          |
++------------------+---------------------------+------+-----+---------+----------------+
+| route_id         | int                       | NO   | PRI | NULL    | auto_increment |
+| source_city      | varchar(100)              | YES  |     | NULL    |                |
+| destination_city | varchar(100)              | YES  |     | NULL    |                |
+| distance         | decimal(8,2)              | YES  |     | NULL    |                |
+| estimated_time   | time                      | YES  |     | NULL    |                |
+| route_status     | enum('Active','Inactive') | YES  |     | Active  |                |
++------------------+---------------------------+------+-----+---------+----------------+
+6 rows in set (0.01 sec)
+
+mysql> INSERT INTO dropping_points(route_id,location,dropping_time) VALUES
+    -> (1,'Drop Point 1','13:00:00'),
+    -> (2,'Drop Point 2','13:00:00'),
+    -> (3,'Drop Point 3','13:00:00'),
+    -> (4,'Drop Point 4','13:00:00'),
+    -> (5,'Drop Point 5','13:00:00'),
+    -> (6,'Drop Point 6','13:00:00'),
+    -> (7,'Drop Point 7','13:00:00'),
+    -> (8,'Drop Point 8','13:00:00'),
+    -> (9,'Drop Point 9','13:00:00'),
+    -> (10,'Drop Point 10','13:00:00');
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`bus_management_system`.`dropping_points`, CONSTRAINT `dropping_points_ibfk_1` FOREIGN KEY (`route_id`) REFERENCES `routes` (`route_id`))
+mysql> INSERT INTO bus_operators(operator_name,owner_name,phone,email,address) VALUES
+    -> ('Operator1','Owner1','9876501001','operator1@mail.com','Hyderabad'),
+    -> ('Operator2','Owner2','9876501002','operator2@mail.com','Vijayawada'),
+    -> ('Operator3','Owner3','9876501003','operator3@mail.com','Visakhapatnam'),
+    -> ('Operator4','Owner4','9876501004','operator4@mail.com','Tirupati'),
+    -> ('Operator5','Owner5','9876501005','operator5@mail.com','Guntur'),
+    -> ('Operator6','Owner6','9876501006','operator6@mail.com','Kakinada'),
+    -> ('Operator7','Owner7','9876501007','operator7@mail.com','Rajahmundry'),
+    -> ('Operator8','Owner8','9876501008','operator8@mail.com','Nellore'),
+    -> ('Operator9','Owner9','9876501009','operator9@mail.com','Warangal'),
+    -> ('Operator10','Owner10','9876501010','operator10@mail.com','Kadapa');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO buses(operator_id,bus_number,bus_name,bus_type,capacity,registration_number,manufacture_year,status) VALUES
+    -> (1,'AP01AB1201','Bus1','Non-AC Sleeper',40,'REG0001',2023,'Available'),
+    -> (2,'AP02AB1202','Bus2','Non-AC Sleeper',40,'REG0002',2023,'Available'),
+    -> (3,'AP03AB1203','Bus3','Luxury',40,'REG0003',2023,'Available'),
+    -> (4,'AP04AB1204','Bus4','AC Sleeper',40,'REG0004',2023,'Available'),
+    -> (5,'AP05AB1205','Bus5','Luxury',40,'REG0005',2023,'Available'),
+    -> (6,'AP06AB1206','Bus6','Semi Sleeper',40,'REG0006',2023,'Available'),
+    -> (7,'AP07AB1207','Bus7','Non-AC Sleeper',40,'REG0007',2023,'Available'),
+    -> (8,'AP08AB1208','Bus8','Non-AC Sleeper',40,'REG0008',2023,'Available'),
+    -> (9,'AP09AB1209','Bus9','AC Seater',40,'REG0009',2023,'Available'),
+    -> (10,'AP010AB1210','Bus10','AC Sleeper',40,'REG0010',2023,'Available');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO drivers(bus_id,driver_name,gender,phone,license_number,experience,salary) VALUES
+    -> (1,'Driver 1','Male','9000000001','LIC001',6,31000),
+    -> (2,'Driver 2','Male','9000000002','LIC002',7,32000),
+    -> (3,'Driver 3','Male','9000000003','LIC003',8,33000),
+    -> (4,'Driver 4','Male','9000000004','LIC004',9,34000),
+    -> (5,'Driver 5','Male','9000000005','LIC005',10,35000),
+    -> (6,'Driver 6','Male','9000000006','LIC006',11,36000),
+    -> (7,'Driver 7','Male','9000000007','LIC007',12,37000),
+    -> (8,'Driver 8','Male','9000000008','LIC008',13,38000),
+    -> (9,'Driver 9','Male','9000000009','LIC009',14,39000),
+    -> (10,'Driver 10','Male','9000000010','LIC010',15,40000);
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO conductors(bus_id,conductor_name,gender,phone,experience,salary) VALUES
+    -> (1,'Conductor 1','Male','9111111001',4,20800),
+    -> (2,'Conductor 2','Male','9111111002',5,21600),
+    -> (3,'Conductor 3','Male','9111111003',6,22400),
+    -> (4,'Conductor 4','Male','9111111004',7,23200),
+    -> (5,'Conductor 5','Male','9111111005',8,24000),
+    -> (6,'Conductor 6','Male','9111111006',9,24800),
+    -> (7,'Conductor 7','Male','9111111007',10,25600),
+    -> (8,'Conductor 8','Male','9111111008',11,26400),
+    -> (9,'Conductor 9','Male','9111111009',12,27200),
+    -> (10,'Conductor 10','Male','9111111010',13,28000);
+Query OK, 10 rows affected (0.01 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO routes(source_city,destination_city,distance,estimated_time,route_status) VALUES
+    -> ('Hyderabad','Vijayawada',120,'05:30:00','Active'),
+    -> ('Hyderabad','Vizag',140,'05:30:00','Active'),
+    -> ('Vizag','Tirupati',160,'05:30:00','Active'),
+    -> ('Guntur','Nellore',180,'05:30:00','Active'),
+    -> ('Kadapa','Kurnool',200,'05:30:00','Active'),
+    -> ('Warangal','Hyderabad',220,'05:30:00','Active'),
+    -> ('Rajahmundry','Vizag',240,'05:30:00','Active'),
+    -> ('Kakinada','Guntur',260,'05:30:00','Active'),
+    -> ('Tirupati','Hyderabad',280,'05:30:00','Active'),
+    -> ('Vijayawada','Kadapa',300,'05:30:00','Active');
+Query OK, 10 rows affected (0.01 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO bus_schedules(bus_id,route_id,departure_date,departure_time,arrival_time,fare,status) VALUES
+    -> (1,1,'2026-08-01','08:00:00','13:30:00',550,'Scheduled'),
+    -> (2,2,'2026-08-02','08:00:00','13:30:00',600,'Scheduled'),
+    -> (3,3,'2026-08-03','08:00:00','13:30:00',650,'Scheduled'),
+    -> (4,4,'2026-08-04','08:00:00','13:30:00',700,'Scheduled'),
+    -> (5,5,'2026-08-05','08:00:00','13:30:00',750,'Scheduled'),
+    -> (6,6,'2026-08-06','08:00:00','13:30:00',800,'Scheduled'),
+    -> (7,7,'2026-08-07','08:00:00','13:30:00',850,'Scheduled'),
+    -> (8,8,'2026-08-08','08:00:00','13:30:00',900,'Scheduled'),
+    -> (9,9,'2026-08-09','08:00:00','13:30:00',950,'Scheduled'),
+    -> (10,10,'2026-08-10','08:00:00','13:30:00',1000,'Scheduled');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO customers(customer_name,gender,age,phone,email,city) VALUES
+    -> ('Customer 1','Male',21,'9888800001','cust1@mail.com','Hyderabad'),
+    -> ('Customer 2','Female',22,'9888800002','cust2@mail.com','Vijayawada'),
+    -> ('Customer 3','Male',23,'9888800003','cust3@mail.com','Visakhapatnam'),
+    -> ('Customer 4','Female',24,'9888800004','cust4@mail.com','Tirupati'),
+    -> ('Customer 5','Male',25,'9888800005','cust5@mail.com','Guntur'),
+    -> ('Customer 6','Female',26,'9888800006','cust6@mail.com','Kakinada'),
+    -> ('Customer 7','Male',27,'9888800007','cust7@mail.com','Rajahmundry'),
+    -> ('Customer 8','Female',28,'9888800008','cust8@mail.com','Nellore'),
+    -> ('Customer 9','Male',29,'9888800009','cust9@mail.com','Warangal'),
+    -> ('Customer 10','Female',30,'9888800010','cust10@mail.com','Kadapa');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO seats(bus_id,seat_number,seat_type,seat_status) VALUES
+    -> (1,'S1','Aisle','Available'),
+    -> (1,'S2','Aisle','Available'),
+    -> (2,'S3','Window','Available'),
+    -> (2,'S4','Aisle','Available'),
+    -> (3,'S5','Aisle','Available'),
+    -> (3,'S6','Window','Available'),
+    -> (4,'S7','Aisle','Available'),
+    -> (4,'S8','Aisle','Available'),
+    -> (5,'S9','Window','Available'),
+    -> (5,'S10','Aisle','Available'),
+    -> (6,'S11','Aisle','Available'),
+    -> (6,'S12','Window','Available'),
+    -> (7,'S13','Aisle','Available'),
+    -> (7,'S14','Aisle','Available'),
+    -> (8,'S15','Window','Available'),
+    -> (8,'S16','Aisle','Available'),
+    -> (9,'S17','Aisle','Available'),
+    -> (9,'S18','Window','Available'),
+    -> (10,'S19','Aisle','Available'),
+    -> (10,'S20','Aisle','Available');
+Query OK, 20 rows affected (0.02 sec)
+Records: 20  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO bookings(customer_id,schedule_id,booking_date,booking_status,total_amount) VALUES
+    -> (1,1,'2026-07-01','Confirmed',550),
+    -> (2,2,'2026-07-02','Confirmed',600),
+    -> (3,3,'2026-07-03','Confirmed',650),
+    -> (4,4,'2026-07-04','Confirmed',700),
+    -> (5,5,'2026-07-05','Confirmed',750),
+    -> (6,6,'2026-07-06','Confirmed',800),
+    -> (7,7,'2026-07-07','Confirmed',850),
+    -> (8,8,'2026-07-08','Confirmed',900),
+    -> (9,9,'2026-07-09','Confirmed',950),
+    -> (10,10,'2026-07-10','Confirmed',1000);
+Query OK, 10 rows affected (0.01 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO booking_details(booking_id,seat_id,passenger_name,passenger_age,passenger_gender) VALUES
+    -> (1,1,'Passenger 1',21,'Male'),
+    -> (2,2,'Passenger 2',22,'Male'),
+    -> (3,3,'Passenger 3',23,'Male'),
+    -> (4,4,'Passenger 4',24,'Male'),
+    -> (5,5,'Passenger 5',25,'Male'),
+    -> (6,6,'Passenger 6',26,'Male'),
+    -> (7,7,'Passenger 7',27,'Male'),
+    -> (8,8,'Passenger 8',28,'Male'),
+    -> (9,9,'Passenger 9',29,'Male'),
+    -> (10,10,'Passenger 10',30,'Male');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO payments(booking_id,payment_mode,payment_date,amount,payment_status,transaction_id) VALUES
+    -> (1,'Net Banking','2026-07-01',550,'Paid','TXN0001'),
+    -> (2,'Card','2026-07-02',600,'Paid','TXN0002'),
+    -> (3,'Card','2026-07-03',650,'Paid','TXN0003'),
+    -> (4,'Net Banking','2026-07-04',700,'Paid','TXN0004'),
+    -> (5,'UPI','2026-07-05',750,'Paid','TXN0005'),
+    -> (6,'Cash','2026-07-06',800,'Paid','TXN0006'),
+    -> (7,'Net Banking','2026-07-07',850,'Paid','TXN0007'),
+    -> (8,'Card','2026-07-08',900,'Paid','TXN0008'),
+    -> (9,'UPI','2026-07-09',950,'Paid','TXN0009'),
+    -> (10,'Net Banking','2026-07-10',1000,'Paid','TXN0010');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO cancellations(booking_id,cancellation_date,refund_amount,reason) VALUES
+    -> (1,'2026-07-11',110,'Personal Reason'),
+    -> (2,'2026-07-12',120,'Personal Reason'),
+    -> (3,'2026-07-13',130,'Personal Reason'),
+    -> (4,'2026-07-14',140,'Personal Reason'),
+    -> (5,'2026-07-15',150,'Personal Reason'),
+    -> (6,'2026-07-16',160,'Personal Reason'),
+    -> (7,'2026-07-17',170,'Personal Reason'),
+    -> (8,'2026-07-18',180,'Personal Reason'),
+    -> (9,'2026-07-19',190,'Personal Reason'),
+    -> (10,'2026-07-20',200,'Personal Reason');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO feedback(customer_id,bus_id,rating,comments,feedback_date) VALUES
+    -> (1,1,2,'Good Service','2026-07-01'),
+    -> (2,2,3,'Good Service','2026-07-02'),
+    -> (3,3,4,'Good Service','2026-07-03'),
+    -> (4,4,5,'Good Service','2026-07-04'),
+    -> (5,5,1,'Good Service','2026-07-05'),
+    -> (6,6,2,'Good Service','2026-07-06'),
+    -> (7,7,3,'Good Service','2026-07-07'),
+    -> (8,8,4,'Good Service','2026-07-08'),
+    -> (9,9,5,'Good Service','2026-07-09'),
+    -> (10,10,1,'Good Service','2026-07-10');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO boarding_points(route_id,location,boarding_time) VALUES
+    -> (1,'Board Point 1','07:30:00'),
+    -> (2,'Board Point 2','07:30:00'),
+    -> (3,'Board Point 3','07:30:00'),
+    -> (4,'Board Point 4','07:30:00'),
+    -> (5,'Board Point 5','07:30:00'),
+    -> (6,'Board Point 6','07:30:00'),
+    -> (7,'Board Point 7','07:30:00'),
+    -> (8,'Board Point 8','07:30:00'),
+    -> (9,'Board Point 9','07:30:00'),
+    -> (10,'Board Point 10','07:30:00');
+Query OK, 10 rows affected (0.01 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO dropping_points(route_id,location,dropping_time) VALUES
+    -> (1,'Drop Point 1','13:00:00'),
+    -> (2,'Drop Point 2','13:00:00'),
+    -> (3,'Drop Point 3','13:00:00'),
+    -> (4,'Drop Point 4','13:00:00'),
+    -> (5,'Drop Point 5','13:00:00'),
+    -> (6,'Drop Point 6','13:00:00'),
+    -> (7,'Drop Point 7','13:00:00'),
+    -> (8,'Drop Point 8','13:00:00'),
+    -> (9,'Drop Point 9','13:00:00'),
+    -> (10,'Drop Point 10','13:00:00');
+Query OK, 10 rows affected (0.02 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> SELECT * FROM bus_operators;
++-------------+---------------+------------+------------+---------------------+---------------+
+| operator_id | operator_name | owner_name | phone      | email               | address       |
++-------------+---------------+------------+------------+---------------------+---------------+
+|           1 | Operator1     | Owner1     | 9876501001 | operator1@mail.com  | Hyderabad     |
+|           2 | Operator2     | Owner2     | 9876501002 | operator2@mail.com  | Vijayawada    |
+|           3 | Operator3     | Owner3     | 9876501003 | operator3@mail.com  | Visakhapatnam |
+|           4 | Operator4     | Owner4     | 9876501004 | operator4@mail.com  | Tirupati      |
+|           5 | Operator5     | Owner5     | 9876501005 | operator5@mail.com  | Guntur        |
+|           6 | Operator6     | Owner6     | 9876501006 | operator6@mail.com  | Kakinada      |
+|           7 | Operator7     | Owner7     | 9876501007 | operator7@mail.com  | Rajahmundry   |
+|           8 | Operator8     | Owner8     | 9876501008 | operator8@mail.com  | Nellore       |
+|           9 | Operator9     | Owner9     | 9876501009 | operator9@mail.com  | Warangal      |
+|          10 | Operator10    | Owner10    | 9876501010 | operator10@mail.com | Kadapa        |
++-------------+---------------+------------+------------+---------------------+---------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM buses;
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+| bus_id | operator_id | bus_number  | bus_name | bus_type       | capacity | registration_number | manufacture_year | status    |
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+|      1 |           1 | AP01AB1201  | Bus1     | Non-AC Sleeper |       40 | REG0001             |             2023 | Available |
+|      2 |           2 | AP02AB1202  | Bus2     | Non-AC Sleeper |       40 | REG0002             |             2023 | Available |
+|      3 |           3 | AP03AB1203  | Bus3     | Luxury         |       40 | REG0003             |             2023 | Available |
+|      4 |           4 | AP04AB1204  | Bus4     | AC Sleeper     |       40 | REG0004             |             2023 | Available |
+|      5 |           5 | AP05AB1205  | Bus5     | Luxury         |       40 | REG0005             |             2023 | Available |
+|      6 |           6 | AP06AB1206  | Bus6     | Semi Sleeper   |       40 | REG0006             |             2023 | Available |
+|      7 |           7 | AP07AB1207  | Bus7     | Non-AC Sleeper |       40 | REG0007             |             2023 | Available |
+|      8 |           8 | AP08AB1208  | Bus8     | Non-AC Sleeper |       40 | REG0008             |             2023 | Available |
+|      9 |           9 | AP09AB1209  | Bus9     | AC Seater      |       40 | REG0009             |             2023 | Available |
+|     10 |          10 | AP010AB1210 | Bus10    | AC Sleeper     |       40 | REG0010             |             2023 | Available |
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM drivers;
++-----------+--------+-------------+--------+------------+----------------+------------+----------+
+| driver_id | bus_id | driver_name | gender | phone      | license_number | experience | salary   |
++-----------+--------+-------------+--------+------------+----------------+------------+----------+
+|         1 |      1 | Driver 1    | Male   | 9000000001 | LIC001         |          6 | 31000.00 |
+|         2 |      2 | Driver 2    | Male   | 9000000002 | LIC002         |          7 | 32000.00 |
+|         3 |      3 | Driver 3    | Male   | 9000000003 | LIC003         |          8 | 33000.00 |
+|         4 |      4 | Driver 4    | Male   | 9000000004 | LIC004         |          9 | 34000.00 |
+|         5 |      5 | Driver 5    | Male   | 9000000005 | LIC005         |         10 | 35000.00 |
+|         6 |      6 | Driver 6    | Male   | 9000000006 | LIC006         |         11 | 36000.00 |
+|         7 |      7 | Driver 7    | Male   | 9000000007 | LIC007         |         12 | 37000.00 |
+|         8 |      8 | Driver 8    | Male   | 9000000008 | LIC008         |         13 | 38000.00 |
+|         9 |      9 | Driver 9    | Male   | 9000000009 | LIC009         |         14 | 39000.00 |
+|        10 |     10 | Driver 10   | Male   | 9000000010 | LIC010         |         15 | 40000.00 |
++-----------+--------+-------------+--------+------------+----------------+------------+----------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM conductors;
++--------------+--------+----------------+--------+------------+------------+----------+
+| conductor_id | bus_id | conductor_name | gender | phone      | experience | salary   |
++--------------+--------+----------------+--------+------------+------------+----------+
+|            1 |      1 | Conductor 1    | Male   | 9111111001 |          4 | 20800.00 |
+|            2 |      2 | Conductor 2    | Male   | 9111111002 |          5 | 21600.00 |
+|            3 |      3 | Conductor 3    | Male   | 9111111003 |          6 | 22400.00 |
+|            4 |      4 | Conductor 4    | Male   | 9111111004 |          7 | 23200.00 |
+|            5 |      5 | Conductor 5    | Male   | 9111111005 |          8 | 24000.00 |
+|            6 |      6 | Conductor 6    | Male   | 9111111006 |          9 | 24800.00 |
+|            7 |      7 | Conductor 7    | Male   | 9111111007 |         10 | 25600.00 |
+|            8 |      8 | Conductor 8    | Male   | 9111111008 |         11 | 26400.00 |
+|            9 |      9 | Conductor 9    | Male   | 9111111009 |         12 | 27200.00 |
+|           10 |     10 | Conductor 10   | Male   | 9111111010 |         13 | 28000.00 |
++--------------+--------+----------------+--------+------------+------------+----------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM routes;
++----------+-------------+------------------+----------+----------------+--------------+
+| route_id | source_city | destination_city | distance | estimated_time | route_status |
++----------+-------------+------------------+----------+----------------+--------------+
+|        1 | Hyderabad   | Vijayawada       |   120.00 | 05:30:00       | Active       |
+|        2 | Hyderabad   | Vizag            |   140.00 | 05:30:00       | Active       |
+|        3 | Vizag       | Tirupati         |   160.00 | 05:30:00       | Active       |
+|        4 | Guntur      | Nellore          |   180.00 | 05:30:00       | Active       |
+|        5 | Kadapa      | Kurnool          |   200.00 | 05:30:00       | Active       |
+|        6 | Warangal    | Hyderabad        |   220.00 | 05:30:00       | Active       |
+|        7 | Rajahmundry | Vizag            |   240.00 | 05:30:00       | Active       |
+|        8 | Kakinada    | Guntur           |   260.00 | 05:30:00       | Active       |
+|        9 | Tirupati    | Hyderabad        |   280.00 | 05:30:00       | Active       |
+|       10 | Vijayawada  | Kadapa           |   300.00 | 05:30:00       | Active       |
++----------+-------------+------------------+----------+----------------+--------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM bus_schedules;
++-------------+--------+----------+----------------+----------------+--------------+---------+-----------+
+| schedule_id | bus_id | route_id | departure_date | departure_time | arrival_time | fare    | status    |
++-------------+--------+----------+----------------+----------------+--------------+---------+-----------+
+|           1 |      1 |        1 | 2026-08-01     | 08:00:00       | 13:30:00     |  550.00 | Scheduled |
+|           2 |      2 |        2 | 2026-08-02     | 08:00:00       | 13:30:00     |  600.00 | Scheduled |
+|           3 |      3 |        3 | 2026-08-03     | 08:00:00       | 13:30:00     |  650.00 | Scheduled |
+|           4 |      4 |        4 | 2026-08-04     | 08:00:00       | 13:30:00     |  700.00 | Scheduled |
+|           5 |      5 |        5 | 2026-08-05     | 08:00:00       | 13:30:00     |  750.00 | Scheduled |
+|           6 |      6 |        6 | 2026-08-06     | 08:00:00       | 13:30:00     |  800.00 | Scheduled |
+|           7 |      7 |        7 | 2026-08-07     | 08:00:00       | 13:30:00     |  850.00 | Scheduled |
+|           8 |      8 |        8 | 2026-08-08     | 08:00:00       | 13:30:00     |  900.00 | Scheduled |
+|           9 |      9 |        9 | 2026-08-09     | 08:00:00       | 13:30:00     |  950.00 | Scheduled |
+|          10 |     10 |       10 | 2026-08-10     | 08:00:00       | 13:30:00     | 1000.00 | Scheduled |
++-------------+--------+----------+----------------+----------------+--------------+---------+-----------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM customers;
++-------------+---------------+--------+------+------------+-----------------+---------------+
+| customer_id | customer_name | gender | age  | phone      | email           | city          |
++-------------+---------------+--------+------+------------+-----------------+---------------+
+|           1 | Customer 1    | Male   |   21 | 9888800001 | cust1@mail.com  | Hyderabad     |
+|           2 | Customer 2    | Female |   22 | 9888800002 | cust2@mail.com  | Vijayawada    |
+|           3 | Customer 3    | Male   |   23 | 9888800003 | cust3@mail.com  | Visakhapatnam |
+|           4 | Customer 4    | Female |   24 | 9888800004 | cust4@mail.com  | Tirupati      |
+|           5 | Customer 5    | Male   |   25 | 9888800005 | cust5@mail.com  | Guntur        |
+|           6 | Customer 6    | Female |   26 | 9888800006 | cust6@mail.com  | Kakinada      |
+|           7 | Customer 7    | Male   |   27 | 9888800007 | cust7@mail.com  | Rajahmundry   |
+|           8 | Customer 8    | Female |   28 | 9888800008 | cust8@mail.com  | Nellore       |
+|           9 | Customer 9    | Male   |   29 | 9888800009 | cust9@mail.com  | Warangal      |
+|          10 | Customer 10   | Female |   30 | 9888800010 | cust10@mail.com | Kadapa        |
++-------------+---------------+--------+------+------------+-----------------+---------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM seats;
++---------+--------+-------------+-----------+-------------+
+| seat_id | bus_id | seat_number | seat_type | seat_status |
++---------+--------+-------------+-----------+-------------+
+|       1 |      1 | S1          | Aisle     | Available   |
+|       2 |      1 | S2          | Aisle     | Available   |
+|       3 |      2 | S3          | Window    | Available   |
+|       4 |      2 | S4          | Aisle     | Available   |
+|       5 |      3 | S5          | Aisle     | Available   |
+|       6 |      3 | S6          | Window    | Available   |
+|       7 |      4 | S7          | Aisle     | Available   |
+|       8 |      4 | S8          | Aisle     | Available   |
+|       9 |      5 | S9          | Window    | Available   |
+|      10 |      5 | S10         | Aisle     | Available   |
+|      11 |      6 | S11         | Aisle     | Available   |
+|      12 |      6 | S12         | Window    | Available   |
+|      13 |      7 | S13         | Aisle     | Available   |
+|      14 |      7 | S14         | Aisle     | Available   |
+|      15 |      8 | S15         | Window    | Available   |
+|      16 |      8 | S16         | Aisle     | Available   |
+|      17 |      9 | S17         | Aisle     | Available   |
+|      18 |      9 | S18         | Window    | Available   |
+|      19 |     10 | S19         | Aisle     | Available   |
+|      20 |     10 | S20         | Aisle     | Available   |
++---------+--------+-------------+-----------+-------------+
+20 rows in set (0.00 sec)
+
+mysql> SELECT * FROM bookings;
++------------+-------------+-------------+--------------+----------------+--------------+
+| booking_id | customer_id | schedule_id | booking_date | booking_status | total_amount |
++------------+-------------+-------------+--------------+----------------+--------------+
+|          1 |           1 |           1 | 2026-07-01   | Confirmed      |       550.00 |
+|          2 |           2 |           2 | 2026-07-02   | Confirmed      |       600.00 |
+|          3 |           3 |           3 | 2026-07-03   | Confirmed      |       650.00 |
+|          4 |           4 |           4 | 2026-07-04   | Confirmed      |       700.00 |
+|          5 |           5 |           5 | 2026-07-05   | Confirmed      |       750.00 |
+|          6 |           6 |           6 | 2026-07-06   | Confirmed      |       800.00 |
+|          7 |           7 |           7 | 2026-07-07   | Confirmed      |       850.00 |
+|          8 |           8 |           8 | 2026-07-08   | Confirmed      |       900.00 |
+|          9 |           9 |           9 | 2026-07-09   | Confirmed      |       950.00 |
+|         10 |          10 |          10 | 2026-07-10   | Confirmed      |      1000.00 |
++------------+-------------+-------------+--------------+----------------+--------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM booking_details;
++-------------------+------------+---------+----------------+---------------+------------------+
+| booking_detail_id | booking_id | seat_id | passenger_name | passenger_age | passenger_gender |
++-------------------+------------+---------+----------------+---------------+------------------+
+|                 1 |          1 |       1 | Passenger 1    |            21 | Male             |
+|                 2 |          2 |       2 | Passenger 2    |            22 | Male             |
+|                 3 |          3 |       3 | Passenger 3    |            23 | Male             |
+|                 4 |          4 |       4 | Passenger 4    |            24 | Male             |
+|                 5 |          5 |       5 | Passenger 5    |            25 | Male             |
+|                 6 |          6 |       6 | Passenger 6    |            26 | Male             |
+|                 7 |          7 |       7 | Passenger 7    |            27 | Male             |
+|                 8 |          8 |       8 | Passenger 8    |            28 | Male             |
+|                 9 |          9 |       9 | Passenger 9    |            29 | Male             |
+|                10 |         10 |      10 | Passenger 10   |            30 | Male             |
++-------------------+------------+---------+----------------+---------------+------------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM payments;
++------------+------------+--------------+--------------+---------+----------------+----------------+
+| payment_id | booking_id | payment_mode | payment_date | amount  | payment_status | transaction_id |
++------------+------------+--------------+--------------+---------+----------------+----------------+
+|          1 |          1 | Net Banking  | 2026-07-01   |  550.00 | Paid           | TXN0001        |
+|          2 |          2 | Card         | 2026-07-02   |  600.00 | Paid           | TXN0002        |
+|          3 |          3 | Card         | 2026-07-03   |  650.00 | Paid           | TXN0003        |
+|          4 |          4 | Net Banking  | 2026-07-04   |  700.00 | Paid           | TXN0004        |
+|          5 |          5 | UPI          | 2026-07-05   |  750.00 | Paid           | TXN0005        |
+|          6 |          6 | Cash         | 2026-07-06   |  800.00 | Paid           | TXN0006        |
+|          7 |          7 | Net Banking  | 2026-07-07   |  850.00 | Paid           | TXN0007        |
+|          8 |          8 | Card         | 2026-07-08   |  900.00 | Paid           | TXN0008        |
+|          9 |          9 | UPI          | 2026-07-09   |  950.00 | Paid           | TXN0009        |
+|         10 |         10 | Net Banking  | 2026-07-10   | 1000.00 | Paid           | TXN0010        |
++------------+------------+--------------+--------------+---------+----------------+----------------+
+10 rows in set (0.01 sec)
+
+mysql> SELECT * FROM cancellations;
++-----------------+------------+-------------------+---------------+-----------------+
+| cancellation_id | booking_id | cancellation_date | refund_amount | reason          |
++-----------------+------------+-------------------+---------------+-----------------+
+|               1 |          1 | 2026-07-11        |        110.00 | Personal Reason |
+|               2 |          2 | 2026-07-12        |        120.00 | Personal Reason |
+|               3 |          3 | 2026-07-13        |        130.00 | Personal Reason |
+|               4 |          4 | 2026-07-14        |        140.00 | Personal Reason |
+|               5 |          5 | 2026-07-15        |        150.00 | Personal Reason |
+|               6 |          6 | 2026-07-16        |        160.00 | Personal Reason |
+|               7 |          7 | 2026-07-17        |        170.00 | Personal Reason |
+|               8 |          8 | 2026-07-18        |        180.00 | Personal Reason |
+|               9 |          9 | 2026-07-19        |        190.00 | Personal Reason |
+|              10 |         10 | 2026-07-20        |        200.00 | Personal Reason |
++-----------------+------------+-------------------+---------------+-----------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM feedback;
++-------------+-------------+--------+--------+--------------+---------------+
+| feedback_id | customer_id | bus_id | rating | comments     | feedback_date |
++-------------+-------------+--------+--------+--------------+---------------+
+|           1 |           1 |      1 |      2 | Good Service | 2026-07-01    |
+|           2 |           2 |      2 |      3 | Good Service | 2026-07-02    |
+|           3 |           3 |      3 |      4 | Good Service | 2026-07-03    |
+|           4 |           4 |      4 |      5 | Good Service | 2026-07-04    |
+|           5 |           5 |      5 |      1 | Good Service | 2026-07-05    |
+|           6 |           6 |      6 |      2 | Good Service | 2026-07-06    |
+|           7 |           7 |      7 |      3 | Good Service | 2026-07-07    |
+|           8 |           8 |      8 |      4 | Good Service | 2026-07-08    |
+|           9 |           9 |      9 |      5 | Good Service | 2026-07-09    |
+|          10 |          10 |     10 |      1 | Good Service | 2026-07-10    |
++-------------+-------------+--------+--------+--------------+---------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM boarding_points;
++-------------+----------+----------------+---------------+
+| boarding_id | route_id | location       | boarding_time |
++-------------+----------+----------------+---------------+
+|           1 |        1 | Board Point 1  | 07:30:00      |
+|           2 |        2 | Board Point 2  | 07:30:00      |
+|           3 |        3 | Board Point 3  | 07:30:00      |
+|           4 |        4 | Board Point 4  | 07:30:00      |
+|           5 |        5 | Board Point 5  | 07:30:00      |
+|           6 |        6 | Board Point 6  | 07:30:00      |
+|           7 |        7 | Board Point 7  | 07:30:00      |
+|           8 |        8 | Board Point 8  | 07:30:00      |
+|           9 |        9 | Board Point 9  | 07:30:00      |
+|          10 |       10 | Board Point 10 | 07:30:00      |
++-------------+----------+----------------+---------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT * FROM dropping_points;
++-------------+----------+---------------+---------------+
+| dropping_id | route_id | location      | dropping_time |
++-------------+----------+---------------+---------------+
+|          11 |        1 | Drop Point 1  | 13:00:00      |
+|          12 |        2 | Drop Point 2  | 13:00:00      |
+|          13 |        3 | Drop Point 3  | 13:00:00      |
+|          14 |        4 | Drop Point 4  | 13:00:00      |
+|          15 |        5 | Drop Point 5  | 13:00:00      |
+|          16 |        6 | Drop Point 6  | 13:00:00      |
+|          17 |        7 | Drop Point 7  | 13:00:00      |
+|          18 |        8 | Drop Point 8  | 13:00:00      |
+|          19 |        9 | Drop Point 9  | 13:00:00      |
+|          20 |       10 | Drop Point 10 | 13:00:00      |
++-------------+----------+---------------+---------------+
+10 rows in set (0.00 sec)
+
+mysql> --  Display all available buses.
+mysql> seleSELECT *
+    -> FROM buses
+    -> ^C
+mysql> SELECT *
+    -> FROM buses
+    -> WHERE status = 'Available';
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+| bus_id | operator_id | bus_number  | bus_name | bus_type       | capacity | registration_number | manufacture_year | status    |
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+|      1 |           1 | AP01AB1201  | Bus1     | Non-AC Sleeper |       40 | REG0001             |             2023 | Available |
+|      2 |           2 | AP02AB1202  | Bus2     | Non-AC Sleeper |       40 | REG0002             |             2023 | Available |
+|      3 |           3 | AP03AB1203  | Bus3     | Luxury         |       40 | REG0003             |             2023 | Available |
+|      4 |           4 | AP04AB1204  | Bus4     | AC Sleeper     |       40 | REG0004             |             2023 | Available |
+|      5 |           5 | AP05AB1205  | Bus5     | Luxury         |       40 | REG0005             |             2023 | Available |
+|      6 |           6 | AP06AB1206  | Bus6     | Semi Sleeper   |       40 | REG0006             |             2023 | Available |
+|      7 |           7 | AP07AB1207  | Bus7     | Non-AC Sleeper |       40 | REG0007             |             2023 | Available |
+|      8 |           8 | AP08AB1208  | Bus8     | Non-AC Sleeper |       40 | REG0008             |             2023 | Available |
+|      9 |           9 | AP09AB1209  | Bus9     | AC Seater      |       40 | REG0009             |             2023 | Available |
+|     10 |          10 | AP010AB1210 | Bus10    | AC Sleeper     |       40 | REG0010             |             2023 | Available |
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+10 rows in set (0.00 sec)
+
+mysql> -- 2.Display all AC Sleeper buses.
+mysql> SELECT *
+    -> FROM buses
+    -> WHERE bus_type = 'AC Sleeper';
++--------+-------------+-------------+----------+------------+----------+---------------------+------------------+-----------+
+| bus_id | operator_id | bus_number  | bus_name | bus_type   | capacity | registration_number | manufacture_year | status    |
++--------+-------------+-------------+----------+------------+----------+---------------------+------------------+-----------+
+|      4 |           4 | AP04AB1204  | Bus4     | AC Sleeper |       40 | REG0004             |             2023 | Available |
+|     10 |          10 | AP010AB1210 | Bus10    | AC Sleeper |       40 | REG0010             |             2023 | Available |
++--------+-------------+-------------+----------+------------+----------+---------------------+------------------+-----------+
+2 rows in set (0.01 sec)
+
+mysql> -- 3.Display all customers from Hyderabad.
+mysql> SELECT *
+    -> FROM customers
+    -> WHERE city = 'Hyderabad';
++-------------+---------------+--------+------+------------+----------------+-----------+
+| customer_id | customer_name | gender | age  | phone      | email          | city      |
++-------------+---------------+--------+------+------------+----------------+-----------+
+|           1 | Customer 1    | Male   |   21 | 9888800001 | cust1@mail.com | Hyderabad |
++-------------+---------------+--------+------+------------+----------------+-----------+
+1 row in set (0.01 sec)
+
+mysql> -- 4. Display all male drivers.
+mysql> SELECT *
+    -> FROM drivers
+    -> WHERE gender = 'Male';
++-----------+--------+-------------+--------+------------+----------------+------------+----------+
+| driver_id | bus_id | driver_name | gender | phone      | license_number | experience | salary   |
++-----------+--------+-------------+--------+------------+----------------+------------+----------+
+|         1 |      1 | Driver 1    | Male   | 9000000001 | LIC001         |          6 | 31000.00 |
+|         2 |      2 | Driver 2    | Male   | 9000000002 | LIC002         |          7 | 32000.00 |
+|         3 |      3 | Driver 3    | Male   | 9000000003 | LIC003         |          8 | 33000.00 |
+|         4 |      4 | Driver 4    | Male   | 9000000004 | LIC004         |          9 | 34000.00 |
+|         5 |      5 | Driver 5    | Male   | 9000000005 | LIC005         |         10 | 35000.00 |
+|         6 |      6 | Driver 6    | Male   | 9000000006 | LIC006         |         11 | 36000.00 |
+|         7 |      7 | Driver 7    | Male   | 9000000007 | LIC007         |         12 | 37000.00 |
+|         8 |      8 | Driver 8    | Male   | 9000000008 | LIC008         |         13 | 38000.00 |
+|         9 |      9 | Driver 9    | Male   | 9000000009 | LIC009         |         14 | 39000.00 |
+|        10 |     10 | Driver 10   | Male   | 9000000010 | LIC010         |         15 | 40000.00 |
++-----------+--------+-------------+--------+------------+----------------+------------+----------+
+10 rows in set (0.00 sec)
+
+mysql> -- 5. Display all confirmed bookings.
+mysql> SELECT *
+    -> FROM bookings
+    -> WHERE booking_status = 'Confirmed';
++------------+-------------+-------------+--------------+----------------+--------------+
+| booking_id | customer_id | schedule_id | booking_date | booking_status | total_amount |
++------------+-------------+-------------+--------------+----------------+--------------+
+|          1 |           1 |           1 | 2026-07-01   | Confirmed      |       550.00 |
+|          2 |           2 |           2 | 2026-07-02   | Confirmed      |       600.00 |
+|          3 |           3 |           3 | 2026-07-03   | Confirmed      |       650.00 |
+|          4 |           4 |           4 | 2026-07-04   | Confirmed      |       700.00 |
+|          5 |           5 |           5 | 2026-07-05   | Confirmed      |       750.00 |
+|          6 |           6 |           6 | 2026-07-06   | Confirmed      |       800.00 |
+|          7 |           7 |           7 | 2026-07-07   | Confirmed      |       850.00 |
+|          8 |           8 |           8 | 2026-07-08   | Confirmed      |       900.00 |
+|          9 |           9 |           9 | 2026-07-09   | Confirmed      |       950.00 |
+|         10 |          10 |          10 | 2026-07-10   | Confirmed      |      1000.00 |
++------------+-------------+-------------+--------------+----------------+--------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 6. Display all paid payments.
+mysql> SELECT *
+    -> FROM payments
+    -> WHERE payment_status = 'Paid';
++------------+------------+--------------+--------------+---------+----------------+----------------+
+| payment_id | booking_id | payment_mode | payment_date | amount  | payment_status | transaction_id |
++------------+------------+--------------+--------------+---------+----------------+----------------+
+|          1 |          1 | Net Banking  | 2026-07-01   |  550.00 | Paid           | TXN0001        |
+|          2 |          2 | Card         | 2026-07-02   |  600.00 | Paid           | TXN0002        |
+|          3 |          3 | Card         | 2026-07-03   |  650.00 | Paid           | TXN0003        |
+|          4 |          4 | Net Banking  | 2026-07-04   |  700.00 | Paid           | TXN0004        |
+|          5 |          5 | UPI          | 2026-07-05   |  750.00 | Paid           | TXN0005        |
+|          6 |          6 | Cash         | 2026-07-06   |  800.00 | Paid           | TXN0006        |
+|          7 |          7 | Net Banking  | 2026-07-07   |  850.00 | Paid           | TXN0007        |
+|          8 |          8 | Card         | 2026-07-08   |  900.00 | Paid           | TXN0008        |
+|          9 |          9 | UPI          | 2026-07-09   |  950.00 | Paid           | TXN0009        |
+|         10 |         10 | Net Banking  | 2026-07-10   | 1000.00 | Paid           | TXN0010        |
++------------+------------+--------------+--------------+---------+----------------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 7. Display all available seats.
+mysql> SELECT *
+    -> FROM seats
+    -> WHERE seat_status = 'Available';
++---------+--------+-------------+-----------+-------------+
+| seat_id | bus_id | seat_number | seat_type | seat_status |
++---------+--------+-------------+-----------+-------------+
+|       1 |      1 | S1          | Aisle     | Available   |
+|       2 |      1 | S2          | Aisle     | Available   |
+|       3 |      2 | S3          | Window    | Available   |
+|       4 |      2 | S4          | Aisle     | Available   |
+|       5 |      3 | S5          | Aisle     | Available   |
+|       6 |      3 | S6          | Window    | Available   |
+|       7 |      4 | S7          | Aisle     | Available   |
+|       8 |      4 | S8          | Aisle     | Available   |
+|       9 |      5 | S9          | Window    | Available   |
+|      10 |      5 | S10         | Aisle     | Available   |
+|      11 |      6 | S11         | Aisle     | Available   |
+|      12 |      6 | S12         | Window    | Available   |
+|      13 |      7 | S13         | Aisle     | Available   |
+|      14 |      7 | S14         | Aisle     | Available   |
+|      15 |      8 | S15         | Window    | Available   |
+|      16 |      8 | S16         | Aisle     | Available   |
+|      17 |      9 | S17         | Aisle     | Available   |
+|      18 |      9 | S18         | Window    | Available   |
+|      19 |     10 | S19         | Aisle     | Available   |
+|      20 |     10 | S20         | Aisle     | Available   |
++---------+--------+-------------+-----------+-------------+
+20 rows in set (0.00 sec)
+
+mysql> -- 8. Display all routes with a distance greater than 200 km.
+mysql> SELECT *
+    -> FROM routes
+    -> WHERE distance > 200;
++----------+-------------+------------------+----------+----------------+--------------+
+| route_id | source_city | destination_city | distance | estimated_time | route_status |
++----------+-------------+------------------+----------+----------------+--------------+
+|        6 | Warangal    | Hyderabad        |   220.00 | 05:30:00       | Active       |
+|        7 | Rajahmundry | Vizag            |   240.00 | 05:30:00       | Active       |
+|        8 | Kakinada    | Guntur           |   260.00 | 05:30:00       | Active       |
+|        9 | Tirupati    | Hyderabad        |   280.00 | 05:30:00       | Active       |
+|       10 | Vijayawada  | Kadapa           |   300.00 | 05:30:00       | Active       |
++----------+-------------+------------------+----------+----------------+--------------+
+5 rows in set (0.01 sec)
+
+mysql> -- 9. Display buses ordered by capacity in descending order.
+mysql> SELECT *
+    -> FROM buses
+    -> ORDER BY capacity DESC;
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+| bus_id | operator_id | bus_number  | bus_name | bus_type       | capacity | registration_number | manufacture_year | status    |
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+|      1 |           1 | AP01AB1201  | Bus1     | Non-AC Sleeper |       40 | REG0001             |             2023 | Available |
+|      2 |           2 | AP02AB1202  | Bus2     | Non-AC Sleeper |       40 | REG0002             |             2023 | Available |
+|      3 |           3 | AP03AB1203  | Bus3     | Luxury         |       40 | REG0003             |             2023 | Available |
+|      4 |           4 | AP04AB1204  | Bus4     | AC Sleeper     |       40 | REG0004             |             2023 | Available |
+|      5 |           5 | AP05AB1205  | Bus5     | Luxury         |       40 | REG0005             |             2023 | Available |
+|      6 |           6 | AP06AB1206  | Bus6     | Semi Sleeper   |       40 | REG0006             |             2023 | Available |
+|      7 |           7 | AP07AB1207  | Bus7     | Non-AC Sleeper |       40 | REG0007             |             2023 | Available |
+|      8 |           8 | AP08AB1208  | Bus8     | Non-AC Sleeper |       40 | REG0008             |             2023 | Available |
+|      9 |           9 | AP09AB1209  | Bus9     | AC Seater      |       40 | REG0009             |             2023 | Available |
+|     10 |          10 | AP010AB1210 | Bus10    | AC Sleeper     |       40 | REG0010             |             2023 | Available |
++--------+-------------+-------------+----------+----------------+----------+---------------------+------------------+-----------+
+10 rows in set (0.00 sec)
+
+mysql> -- 10. Display the first five customers.
+mysql> SELECT *
+    -> FROM customers
+    -> LIMIT 5;
++-------------+---------------+--------+------+------------+----------------+---------------+
+| customer_id | customer_name | gender | age  | phone      | email          | city          |
++-------------+---------------+--------+------+------------+----------------+---------------+
+|           1 | Customer 1    | Male   |   21 | 9888800001 | cust1@mail.com | Hyderabad     |
+|           2 | Customer 2    | Female |   22 | 9888800002 | cust2@mail.com | Vijayawada    |
+|           3 | Customer 3    | Male   |   23 | 9888800003 | cust3@mail.com | Visakhapatnam |
+|           4 | Customer 4    | Female |   24 | 9888800004 | cust4@mail.com | Tirupati      |
+|           5 | Customer 5    | Male   |   25 | 9888800005 | cust5@mail.com | Guntur        |
++-------------+---------------+--------+------+------------+----------------+---------------+
+5 rows in set (0.00 sec)
+
+mysql> -- 11. Display bus details along with their operator name.
+mysql> SELECT
+    ->     b.bus_id,
+    ->     b.bus_name,
+    ->     b.bus_number,
+    ->     o.operator_name
+    -> FROM buses b
+    -> INNER JOIN bus_operators o
+    -> ON b.operator_id = o.operator_id;
++--------+----------+-------------+---------------+
+| bus_id | bus_name | bus_number  | operator_name |
++--------+----------+-------------+---------------+
+|      1 | Bus1     | AP01AB1201  | Operator1     |
+|      2 | Bus2     | AP02AB1202  | Operator2     |
+|      3 | Bus3     | AP03AB1203  | Operator3     |
+|      4 | Bus4     | AP04AB1204  | Operator4     |
+|      5 | Bus5     | AP05AB1205  | Operator5     |
+|      6 | Bus6     | AP06AB1206  | Operator6     |
+|      7 | Bus7     | AP07AB1207  | Operator7     |
+|      8 | Bus8     | AP08AB1208  | Operator8     |
+|      9 | Bus9     | AP09AB1209  | Operator9     |
+|     10 | Bus10    | AP010AB1210 | Operator10    |
++--------+----------+-------------+---------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 12. Display customer booking details.
+mysql> SELECT
+    ->     c.customer_id,
+    ->     c.customer_name,
+    ->     bk.booking_id,
+    ->     bk.booking_date,
+    ->     bk.booking_status
+    -> FROM customers c
+    -> INNER JOIN bookings bk
+    -> ON c.customer_id = bk.customer_id;
++-------------+---------------+------------+--------------+----------------+
+| customer_id | customer_name | booking_id | booking_date | booking_status |
++-------------+---------------+------------+--------------+----------------+
+|           1 | Customer 1    |          1 | 2026-07-01   | Confirmed      |
+|           2 | Customer 2    |          2 | 2026-07-02   | Confirmed      |
+|           3 | Customer 3    |          3 | 2026-07-03   | Confirmed      |
+|           4 | Customer 4    |          4 | 2026-07-04   | Confirmed      |
+|           5 | Customer 5    |          5 | 2026-07-05   | Confirmed      |
+|           6 | Customer 6    |          6 | 2026-07-06   | Confirmed      |
+|           7 | Customer 7    |          7 | 2026-07-07   | Confirmed      |
+|           8 | Customer 8    |          8 | 2026-07-08   | Confirmed      |
+|           9 | Customer 9    |          9 | 2026-07-09   | Confirmed      |
+|          10 | Customer 10   |         10 | 2026-07-10   | Confirmed      |
++-------------+---------------+------------+--------------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 13. Display bus schedule along with route details.
+mysql> SELECT
+    ->     bs.schedule_id,
+    ->     b.bus_name,
+    ->     r.source_city,
+    ->     r.destination_city,
+    ->     bs.departure_date,
+    ->     bs.departure_time,
+    ->     bs.arrival_time,
+    ->     bs.fare
+    -> FROM bus_schedules bs
+    -> INNER JOIN buses b
+    -> ON bs.bus_id = b.bus_id
+    -> INNER JOIN routes r
+    -> ON bs.route_id = r.route_id;
++-------------+----------+-------------+------------------+----------------+----------------+--------------+---------+
+| schedule_id | bus_name | source_city | destination_city | departure_date | departure_time | arrival_time | fare    |
++-------------+----------+-------------+------------------+----------------+----------------+--------------+---------+
+|           1 | Bus1     | Hyderabad   | Vijayawada       | 2026-08-01     | 08:00:00       | 13:30:00     |  550.00 |
+|           2 | Bus2     | Hyderabad   | Vizag            | 2026-08-02     | 08:00:00       | 13:30:00     |  600.00 |
+|           3 | Bus3     | Vizag       | Tirupati         | 2026-08-03     | 08:00:00       | 13:30:00     |  650.00 |
+|           4 | Bus4     | Guntur      | Nellore          | 2026-08-04     | 08:00:00       | 13:30:00     |  700.00 |
+|           5 | Bus5     | Kadapa      | Kurnool          | 2026-08-05     | 08:00:00       | 13:30:00     |  750.00 |
+|           6 | Bus6     | Warangal    | Hyderabad        | 2026-08-06     | 08:00:00       | 13:30:00     |  800.00 |
+|           7 | Bus7     | Rajahmundry | Vizag            | 2026-08-07     | 08:00:00       | 13:30:00     |  850.00 |
+|           8 | Bus8     | Kakinada    | Guntur           | 2026-08-08     | 08:00:00       | 13:30:00     |  900.00 |
+|           9 | Bus9     | Tirupati    | Hyderabad        | 2026-08-09     | 08:00:00       | 13:30:00     |  950.00 |
+|          10 | Bus10    | Vijayawada  | Kadapa           | 2026-08-10     | 08:00:00       | 13:30:00     | 1000.00 |
++-------------+----------+-------------+------------------+----------------+----------------+--------------+---------+
+10 rows in set (0.00 sec)
+
+mysql> -- 14. Display driver details with the assigned bus.
+mysql> SELECT
+    ->     d.driver_name,
+    ->     d.phone,
+    ->     b.bus_name,
+    ->     b.bus_number
+    -> FROM drivers d
+    -> INNER JOIN buses b
+    -> ON d.bus_id = b.bus_id;
++-------------+------------+----------+-------------+
+| driver_name | phone      | bus_name | bus_number  |
++-------------+------------+----------+-------------+
+| Driver 1    | 9000000001 | Bus1     | AP01AB1201  |
+| Driver 2    | 9000000002 | Bus2     | AP02AB1202  |
+| Driver 3    | 9000000003 | Bus3     | AP03AB1203  |
+| Driver 4    | 9000000004 | Bus4     | AP04AB1204  |
+| Driver 5    | 9000000005 | Bus5     | AP05AB1205  |
+| Driver 6    | 9000000006 | Bus6     | AP06AB1206  |
+| Driver 7    | 9000000007 | Bus7     | AP07AB1207  |
+| Driver 8    | 9000000008 | Bus8     | AP08AB1208  |
+| Driver 9    | 9000000009 | Bus9     | AP09AB1209  |
+| Driver 10   | 9000000010 | Bus10    | AP010AB1210 |
++-------------+------------+----------+-------------+
+10 rows in set (0.01 sec)
+
+mysql> -- 15. Display payment details along with customer name.
+mysql> SELECT
+    ->     c.customer_name,
+    ->     p.payment_mode,
+    ->     p.amount,
+    ->     p.payment_status,
+    ->     p.payment_date
+    -> FROM customers c
+    -> INNER JOIN bookings bk
+    -> ON c.customer_id = bk.customer_id
+    -> INNER JOIN payments p
+    -> ON bk.booking_id = p.booking_id;
++---------------+--------------+---------+----------------+--------------+
+| customer_name | payment_mode | amount  | payment_status | payment_date |
++---------------+--------------+---------+----------------+--------------+
+| Customer 1    | Net Banking  |  550.00 | Paid           | 2026-07-01   |
+| Customer 2    | Card         |  600.00 | Paid           | 2026-07-02   |
+| Customer 3    | Card         |  650.00 | Paid           | 2026-07-03   |
+| Customer 4    | Net Banking  |  700.00 | Paid           | 2026-07-04   |
+| Customer 5    | UPI          |  750.00 | Paid           | 2026-07-05   |
+| Customer 6    | Cash         |  800.00 | Paid           | 2026-07-06   |
+| Customer 7    | Net Banking  |  850.00 | Paid           | 2026-07-07   |
+| Customer 8    | Card         |  900.00 | Paid           | 2026-07-08   |
+| Customer 9    | UPI          |  950.00 | Paid           | 2026-07-09   |
+| Customer 10   | Net Banking  | 1000.00 | Paid           | 2026-07-10   |
++---------------+--------------+---------+----------------+--------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 16. Display booking details along with seat number.
+mysql> SELECT
+    ->     bd.booking_detail_id,
+    ->     bd.passenger_name,
+    ->     s.seat_number,
+    ->     s.seat_type
+    -> FROM booking_details bd
+    -> INNER JOIN seats s
+    -> ON bd.seat_id = s.seat_id;
++-------------------+----------------+-------------+-----------+
+| booking_detail_id | passenger_name | seat_number | seat_type |
++-------------------+----------------+-------------+-----------+
+|                 1 | Passenger 1    | S1          | Aisle     |
+|                 2 | Passenger 2    | S2          | Aisle     |
+|                 3 | Passenger 3    | S3          | Window    |
+|                 4 | Passenger 4    | S4          | Aisle     |
+|                 5 | Passenger 5    | S5          | Aisle     |
+|                 6 | Passenger 6    | S6          | Window    |
+|                 7 | Passenger 7    | S7          | Aisle     |
+|                 8 | Passenger 8    | S8          | Aisle     |
+|                 9 | Passenger 9    | S9          | Window    |
+|                10 | Passenger 10   | S10         | Aisle     |
++-------------------+----------------+-------------+-----------+
+10 rows in set (0.00 sec)
+
+mysql> -- 17. Display customer feedback along with bus name.
+mysql> SELECT
+    ->     c.customer_name,
+    ->     b.bus_name,
+    ->     f.rating,
+    ->     f.comments
+    -> FROM feedback f
+    -> INNER JOIN customers c
+    -> ON f.customer_id = c.customer_id
+    -> INNER JOIN buses b
+    -> ON f.bus_id = b.bus_id;
++---------------+----------+--------+--------------+
+| customer_name | bus_name | rating | comments     |
++---------------+----------+--------+--------------+
+| Customer 1    | Bus1     |      2 | Good Service |
+| Customer 2    | Bus2     |      3 | Good Service |
+| Customer 3    | Bus3     |      4 | Good Service |
+| Customer 4    | Bus4     |      5 | Good Service |
+| Customer 5    | Bus5     |      1 | Good Service |
+| Customer 6    | Bus6     |      2 | Good Service |
+| Customer 7    | Bus7     |      3 | Good Service |
+| Customer 8    | Bus8     |      4 | Good Service |
+| Customer 9    | Bus9     |      5 | Good Service |
+| Customer 10   | Bus10    |      1 | Good Service |
++---------------+----------+--------+--------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 18. Display all buses along with their driver names.
+mysql> SELECT
+    ->     b.bus_name,
+    ->     b.bus_number,
+    ->     d.driver_name
+    -> FROM buses b
+    -> LEFT JOIN drivers d
+    -> ON b.bus_id = d.bus_id;
++----------+-------------+-------------+
+| bus_name | bus_number  | driver_name |
++----------+-------------+-------------+
+| Bus1     | AP01AB1201  | Driver 1    |
+| Bus2     | AP02AB1202  | Driver 2    |
+| Bus3     | AP03AB1203  | Driver 3    |
+| Bus4     | AP04AB1204  | Driver 4    |
+| Bus5     | AP05AB1205  | Driver 5    |
+| Bus6     | AP06AB1206  | Driver 6    |
+| Bus7     | AP07AB1207  | Driver 7    |
+| Bus8     | AP08AB1208  | Driver 8    |
+| Bus9     | AP09AB1209  | Driver 9    |
+| Bus10    | AP010AB1210 | Driver 10   |
++----------+-------------+-------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 19. Display all buses along with their conductor names.
+mysql> SELECT
+    ->     b.bus_name,
+    ->     c.conductor_name
+    -> FROM buses b
+    -> LEFT JOIN conductors c
+    -> ON b.bus_id = c.bus_id;
++----------+----------------+
+| bus_name | conductor_name |
++----------+----------------+
+| Bus1     | Conductor 1    |
+| Bus2     | Conductor 2    |
+| Bus3     | Conductor 3    |
+| Bus4     | Conductor 4    |
+| Bus5     | Conductor 5    |
+| Bus6     | Conductor 6    |
+| Bus7     | Conductor 7    |
+| Bus8     | Conductor 8    |
+| Bus9     | Conductor 9    |
+| Bus10    | Conductor 10   |
++----------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 20. Display boarding and dropping points for each route.
+mysql> SELECT
+    ->     r.source_city,
+    ->     r.destination_city,
+    ->     bp.location AS Boarding_Point,
+    ->     dp.location AS Dropping_Point
+    -> FROM routes r
+    -> INNER JOIN boarding_points bp
+    -> ON r.route_id = bp.route_id
+    -> INNER JOIN dropping_points dp
+    -> ON r.route_id = dp.route_id;
++-------------+------------------+----------------+----------------+
+| source_city | destination_city | Boarding_Point | Dropping_Point |
++-------------+------------------+----------------+----------------+
+| Hyderabad   | Vijayawada       | Board Point 1  | Drop Point 1   |
+| Hyderabad   | Vizag            | Board Point 2  | Drop Point 2   |
+| Vizag       | Tirupati         | Board Point 3  | Drop Point 3   |
+| Guntur      | Nellore          | Board Point 4  | Drop Point 4   |
+| Kadapa      | Kurnool          | Board Point 5  | Drop Point 5   |
+| Warangal    | Hyderabad        | Board Point 6  | Drop Point 6   |
+| Rajahmundry | Vizag            | Board Point 7  | Drop Point 7   |
+| Kakinada    | Guntur           | Board Point 8  | Drop Point 8   |
+| Tirupati    | Hyderabad        | Board Point 9  | Drop Point 9   |
+| Vijayawada  | Kadapa           | Board Point 10 | Drop Point 10  |
++-------------+------------------+----------------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> -- 21. Find the total number of bookings made by each customer.
+mysql> SELECT
+    ->     c.customer_name,
+    ->     COUNT(b.booking_id) AS Total_Bookings
+    -> FROM customers c
+    -> INNER JOIN bookings b
+    -> ON c.customer_id = b.customer_id
+    -> GROUP BY c.customer_name;
++---------------+----------------+
+| customer_name | Total_Bookings |
++---------------+----------------+
+| Customer 1    |              1 |
+| Customer 2    |              1 |
+| Customer 3    |              1 |
+| Customer 4    |              1 |
+| Customer 5    |              1 |
+| Customer 6    |              1 |
+| Customer 7    |              1 |
+| Customer 8    |              1 |
+| Customer 9    |              1 |
+| Customer 10   |              1 |
++---------------+----------------+
+10 rows in set (0.01 sec)
+
+mysql> -- 22. Find the total revenue generated by each payment mode.
+mysql> SELECT
+    ->     payment_mode,
+    ->     SUM(amount) AS Total_Revenue
+    -> FROM payments
+    -> GROUP BY payment_mode;
++--------------+---------------+
+| payment_mode | Total_Revenue |
++--------------+---------------+
+| Net Banking  |       3100.00 |
+| Card         |       2150.00 |
+| UPI          |       1700.00 |
+| Cash         |        800.00 |
++--------------+---------------+
+4 rows in set (0.00 sec)
+
+mysql> -- 23. Find the average fare for each bus type.
+mysql> SELECT
+    ->     b.bus_type,
+    ->     AVG(bs.fare) AS Average_Fare
+    -> FROM buses b
+    -> INNER JOIN bus_schedules bs
+    -> ON b.bus_id = bs.bus_id
+    -> GROUP BY b.bus_type;
++----------------+--------------+
+| bus_type       | Average_Fare |
++----------------+--------------+
+| Non-AC Sleeper |   725.000000 |
+| Luxury         |   700.000000 |
+| AC Sleeper     |   850.000000 |
+| Semi Sleeper   |   800.000000 |
+| AC Seater      |   950.000000 |
++----------------+--------------+
+5 rows in set (0.01 sec)
+
+mysql> -- 24. Display buses having more than one schedule.
+mysql> SELECT
+    ->     b.bus_name,
+    ->     COUNT(bs.schedule_id) AS Total_Schedules
+    -> FROM buses b
+    -> INNER JOIN bus_schedules bs
+    -> ON b.bus_id = bs.bus_id
+    -> GROUP BY b.bus_name
+    -> HAVING COUNT(bs.schedule_id) > 1;
+Empty set (0.00 sec)
+
+mysql> -- 25. Find the total number of buses managed by each operator.
+mysql> SELECT
+    ->     bo.operator_name,
+    ->     COUNT(b.bus_id) AS Total_Buses
+    -> FROM bus_operators bo
+    -> INNER JOIN buses b
+    -> ON bo.operator_id = b.operator_id
+    -> GROUP BY bo.operator_name;
++---------------+-------------+
+| operator_name | Total_Buses |
++---------------+-------------+
+| Operator1     |           1 |
+| Operator2     |           1 |
+| Operator3     |           1 |
+| Operator4     |           1 |
+| Operator5     |           1 |
+| Operator6     |           1 |
+| Operator7     |           1 |
+| Operator8     |           1 |
+| Operator9     |           1 |
+| Operator10    |           1 |
++---------------+-------------+
+10 rows in set (0.01 sec)
+
+mysql> Terminal close -- exit!
